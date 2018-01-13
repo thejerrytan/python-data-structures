@@ -10,9 +10,20 @@ class Node:
     def __str__(self):
         return "Node(%s)" % self.val
 
+    def __eq__(self, other):
+        return (
+            self.__class__ == other.__class__ and 
+            self.val == other.val
+            )
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
     def get(self):
         return self.val
     
+    # Note: when a node is used in a BST, a node's val is immutable 
+    # DO NOT change a node's value using n.set(newVal) or directly by n.val = newVal
     def set(self, val):
         self.val = val
         
@@ -37,6 +48,31 @@ class BST:
     def __init__(self):
         self.root = None
 
+    def __eq__(self, other):
+        currentSelfNode = self.root
+        currentOtherNode = other.root
+        if currentSelfNode is not None and currentOtherNode is not None:
+            selfStack = [currentSelfNode]
+            otherStack = [currentOtherNode]
+            while selfStack and otherStack:
+                currentSelfNode = selfStack.pop()
+                currentOtherNode = otherStack.pop()
+                if currentSelfNode != currentOtherNode:
+                    return False
+                else:
+                    # Depth-first in-order traversal
+                    if currentSelfNode.rightChild is not None: selfStack.append(currentSelfNode.rightChild)
+                    if currentOtherNode.rightChild is not None: otherStack.append(currentOtherNode.rightChild)
+                    if currentSelfNode.leftChild is not None: selfStack.append(currentSelfNode.leftChild)
+                    if currentOtherNode.leftChild is not None: otherStack.append(currentOtherNode.leftChild)
+            return True
+        elif currentSelfNode != currentOtherNode:
+            return False
+        else:
+            # Both roots are None
+            return True
+
+    # TODO: a string represetation of a BST
     # def __str__(self):
     #     ans = []
     #     currentNode = self.root
@@ -188,6 +224,66 @@ class BST:
                     else:
                         currentNode = currentNode.parent
 
+    def leftRotate(self, val):
+        # Let x be node you are rotating, y be x.rightChild
+        # left-rotate x would place 
+        #   y.leftChild under x.rightChild
+        #   parent of y = parent of x
+        #   y.leftChild = x
+        #     x                 y
+        #    / \               / \
+        #   A   y      =>     x   C
+        #      / \           / \
+        #     B   C         A   B
+        x = self.find(val)
+        if x is not None:
+            y = x.rightChild
+            if y is None: return # invalid operation
+            parentOfX = x.parent
+            # Change parent of x
+            if parentOfX is not None:
+                y.parent = parentOfX
+                if x.isLeftChild():
+                    parentOfX.leftChild = y
+                else:
+                    parentOfX.rightChild = y
+            
+            # Change right child of x
+            x.rightChild = y.leftChild
+            if y.leftChild is not None: y.leftChild.parent = x
+
+            # Change left child of y
+            y.leftChild = x
+            x.parent = y
+
+    def rightRotate(self, val):
+        # Opposite of leftRotate
+        #     y               x      
+        #    / \             / \
+        #   x   C    =>     A   y
+        #  / \                 / \
+        # A   B               B   C  
+        #
+        y = self.find(val)
+        if y is not None:
+            x = y.leftChild
+            if x is None: return # invalid operation
+            parentOfY = y.parent
+            # Change parent of y
+            if parentOfY is not None:
+                x.parent = parentOfY
+                if y.isLeftChild():
+                    parentOfY.leftChild = x
+                else:
+                    parentOfY.rightChild = x
+
+            # Change left child of y
+            y.leftChild = x.rightChild
+            if x.rightChild is not None: x.rightChild.parent = y
+
+            # Change rightChild of x
+            x.rightChild = y
+            y.parent = x
 
 def test():
     data = [10,4,5,2,3,8,9,9]
@@ -250,6 +346,45 @@ def test():
     assert(t.getPredecessor(-10) == None)
     assert(t.getPredecessor(11).val == 9)
     assert(t.getPredecessor(15) == None)
+
+    # Test leftRotate
+    t.leftRotate(4)
+    assert(t.find(11).leftChild.val == 5)
+    assert(t.find(5).parent.val == 11)
+    assert(t.find(4).parent.val == 5)
+    assert(t.find(5).leftChild.val == 4)
+    assert(t.find(4).leftChild.val == 2)
+    assert(t.find(2).parent.val == 4)
+    assert(t.find(4).rightChild == None)
+    assert(t.find(5).rightChild.val == 8)
+    assert(t.find(8).parent.val == 5)
+
+    # Test rightRotate
+    t.rightRotate(5)
+    assert(t.find(11).leftChild.val == 4)
+    assert(t.find(4).parent.val == 11)
+    assert(t.find(4).leftChild.val == 2)
+    assert(t.find(2).parent.val == 4)
+    assert(t.find(4).rightChild.val == 5)
+    assert(t.find(5).parent.val == 4)
+    assert(t.find(5).leftChild == None)
+    assert(t.find(5).rightChild.val == 8)
+    assert(t.find(8).parent.val == 5)
+
+    # Test that leftRotate and rightRotate are inverse of each other
+    import copy
+    newT = copy.deepcopy(t)
+    assert(newT == t)
+    newT.leftRotate(4)
+    newT.rightRotate(5)
+    assert(t == newT)
+    newT.leftRotate(5)
+    newT.rightRotate(8)
+    assert(t == newT)
+
+    # Test that invalid operations do not go through
+    newT.leftRotate(11)
+    assert(t == newT)
 
 if __name__ == "__main__":
     test()
