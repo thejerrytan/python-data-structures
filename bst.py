@@ -1,4 +1,4 @@
-class Node:
+class Node(object):
     def __init__(self, val, parent):
         self.val = val
         self.leftChild = None
@@ -44,7 +44,7 @@ class Node:
         return (self.val > self.parent.val)
 
 # Duplicates are kept as left child of currentNode        
-class BST:
+class BST(object):
     def __init__(self):
         self.root = None
 
@@ -71,6 +71,9 @@ class BST:
         else:
             # Both roots are None
             return True
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     # TODO: a string represetation of a BST
     # def __str__(self):
@@ -224,7 +227,7 @@ class BST:
                     else:
                         currentNode = currentNode.parent
 
-    def leftRotate(self, val):
+    def leftRotate(self, val, startNode=None):
         # Let x be node you are rotating, y be x.rightChild
         # left-rotate x would place 
         #   y.leftChild under x.rightChild
@@ -235,7 +238,7 @@ class BST:
         #   A   y      =>     x   C
         #      / \           / \
         #     B   C         A   B
-        x = self.find(val)
+        x = startNode if startNode is not None else self.find(val)
         if x is not None:
             y = x.rightChild
             if y is None: return # invalid operation
@@ -247,6 +250,10 @@ class BST:
                     parentOfX.leftChild = y
                 else:
                     parentOfX.rightChild = y
+            else:
+                # x is root
+                self.root = y
+                y.parent = None
             
             # Change right child of x
             x.rightChild = y.leftChild
@@ -256,7 +263,7 @@ class BST:
             y.leftChild = x
             x.parent = y
 
-    def rightRotate(self, val):
+    def rightRotate(self, val, startNode=None):
         # Opposite of leftRotate
         #     y               x      
         #    / \             / \
@@ -264,7 +271,7 @@ class BST:
         #  / \                 / \
         # A   B               B   C  
         #
-        y = self.find(val)
+        y = startNode if startNode is not None else self.find(val)
         if y is not None:
             x = y.leftChild
             if x is None: return # invalid operation
@@ -276,6 +283,10 @@ class BST:
                     parentOfY.leftChild = x
                 else:
                     parentOfY.rightChild = x
+            else:
+                # y is root
+                self.root = x
+                x.parent = None
 
             # Change left child of y
             y.leftChild = x.rightChild
