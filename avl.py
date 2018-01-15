@@ -57,6 +57,9 @@ class AugmentedHeightNode(Node):
         if self.count < 1: raise Exception("Cannot decrement count below 1")
         self.count -= 1
 
+    def getCount(self):
+        return self.count
+
 class AVLTree(BST):
     LEFT_LEFT_HEAVY   = 1
     LEFT_RIGHT_HEAVY  = 2
@@ -72,6 +75,24 @@ class AVLTree(BST):
 
     def getHeight(self):
         return self.root.getHeight() if self.root is not None else 0
+
+    # Returns (Node, path to node), (None, path to leaf) if not found
+    def findPathToNode(self, val, startNode=None):
+        path = []
+        currentNode = self.root if startNode is None else startNode
+        while True:
+            if currentNode is not None:
+                path.append(currentNode)
+                if val < currentNode.val:
+                    currentNode = currentNode.leftChild
+                elif val > currentNode.val:
+                    currentNode = currentNode.rightChild
+                else:
+                    # val == currentNode.val
+                    return (currentNode, path)
+            else:
+                # Not found
+                return (None, path)
 
     # insertNode now keeps track of nodes along its search path whose height needs to be updated
     def insertNode(self, currentNode, val):
@@ -99,6 +120,62 @@ class AVLTree(BST):
             n = dirtyNodes.pop()
             n.setHeight()
             if not n.isBalanced(): self.balanceTree(n)
+
+    def remove(self, val, startNode=None):
+        (target, path) = self.findPathToNode(val)
+
+        if target is not None:
+            if target.getCount() > 1: 
+                target.decrementCount()
+                return True
+            
+            if target is self.root:
+                if target.leftChild is None and target.rightChild is None:
+                    self.root = None
+                elif target.leftChild is None and target.rightChild is not None:
+                    self.root = target.rightChild
+                elif target.leftChild is not None and target.rightChild is None:
+                    self.root = target.leftChild
+                elif target.leftChild is not None and target.rightChild is not None:
+                    rightMin = self.min(target.rightChild)
+                    target.val = rightMin
+                    self.remove(rightMin, target.rightChild)
+                    return True
+                else:
+                    return False
+            else:
+                if target.leftChild is None and target.rightChild is None:
+                    if target.parent.val > target.val: target.parent.leftChild = None
+                    elif target.parent.val == target.val: target.parent.rightChild = None
+                    elif target.parent.val < target.val: target.parent.rightChild = None
+                elif target.leftChild is None and target.rightChild is not None:
+                    if target.parent.val > target.val: target.parent.leftChild = target.rightChild
+                    elif target.parent.val == target.val: target.parent.rightChild = target.rightChild
+                    elif target.parent.val < target.val: target.parent.rightChild = target.rightChild
+                    target.rightChild.parent = target.parent
+                elif target.leftChild is not None and target.rightChild is None:
+                    if target.parent.val > target.val: target.parent.leftChild = target.leftChild
+                    elif target.parent.val == target.val: target.parent.rightChild = target.leftChild
+                    elif target.parent.val < target.val: target.parent.rightChild = target.leftChild
+                    target.leftChild.parent = target.parent
+                elif target.rightChild is not None and target.rightChild is not None:
+                    rightMin = self.min(target.rightChild)
+                    target.val = rightMin
+                    self.remove(rightMin, target.rightChild)
+                    return True
+                else:
+                    # Funny edge case
+                    return False
+
+            # Update heights and rebalance trees
+            while path:
+                n = path.pop()
+                n.setHeight()
+                if not n.isBalanced(): self.balanceTree(n)
+            return True
+        else:
+            # Nothing to remove
+            return False
 
     def balanceTree(self, startNode):
         imbalanceType = self.determineImbalanceType(startNode)
@@ -191,6 +268,12 @@ def test():
         if i % 1000 == 0: print("Num of nodes processed: %d k" % ( (i+RANGE) / 1000))
         assert(t.getHeight() == math.ceil(math.log(i+RANGE+1+1, 2))-1)
 
+    print("Testing correctness for remove: removing nodes")
+    TOTAL_NUM_NODES = int(2*RANGE)
+    for i in xrange(int(-RANGE), int(RANGE)+1):
+        t.remove(i)
+        assert(t.getHeight() <= 1.44 * math.log(TOTAL_NUM_NODES - i+RANGE+1, 2))
+
     print("Testing correctness for average case: inserting %s nodes generated randomly in the interval [-1000, 1000]" % int(2*RANGE))
     t = AVLTree()
     for i in xrange(int(-RANGE), int(RANGE)+1):
@@ -200,6 +283,7 @@ def test():
         if i % 1000 == 0: print("Num of nodes processed: %d k" % ( (i+RANGE) / 1000))
         # See https://www.youtube.com/watch?v=FNeL18KsWPc&t=2484s (25:16) for fomula h < 1.440 lg n
         assert(t.getHeight() <= 1.44 * math.log(i+RANGE+1, 2))
+
 
     # Test performance
     import timeit
