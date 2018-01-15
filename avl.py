@@ -3,6 +3,7 @@ from bst import Node, BST
 class AugmentedHeightNode(Node):
     def __init__(self, val, parent):
         super(AugmentedHeightNode, self).__init__(val, parent)
+        self.count = 1 # To ensure each val in the tree is unique, use count to store duplicates
         
         # Augmentations
         self.height = 0
@@ -49,6 +50,12 @@ class AugmentedHeightNode(Node):
         else:
             return (self.leftChild.getHeight() < self.rightChild.getHeight())
 
+    def incrementCount(self):
+        self.count += 1
+
+    def decrementCount(self):
+        if self.count < 1: raise Exception("Cannot decrement count below 1")
+        self.count -= 1
 
 class AVLTree(BST):
     LEFT_LEFT_HEAVY   = 1
@@ -70,7 +77,7 @@ class AVLTree(BST):
     def insertNode(self, currentNode, val):
         dirtyNodes = []
         while True:
-            if (val <= currentNode.val):
+            if (val < currentNode.val):
                 dirtyNodes.append(currentNode)
                 if currentNode.leftChild:
                     currentNode = currentNode.leftChild
@@ -84,6 +91,10 @@ class AVLTree(BST):
                 else:
                     currentNode.rightChild = AugmentedHeightNode(val, currentNode)
                     break
+            else:
+                # val == currentNode.val
+                currentNode.incrementCount()
+                break
         while dirtyNodes:
             n = dirtyNodes.pop()
             n.setHeight()
@@ -100,10 +111,7 @@ class AVLTree(BST):
             if newLeftChild is not None: newLeftChild.setHeight()
             if newSubRoot is not None: newSubRoot.setHeight()
             # print(str(startNode), "left-left")
-            try:
-                assert(newSubRoot.isBalanced() == True)
-            except Exception as e:
-                print("error", newSubRoot.leftChild.height, newSubRoot.rightChild.height)
+            assert(newSubRoot.isBalanced() == True)
         elif imbalanceType == AVLTree.LEFT_RIGHT_HEAVY:
             newLeftChild = startNode.leftChild
             newSubRoot = startNode.leftChild.rightChild
@@ -113,11 +121,8 @@ class AVLTree(BST):
             if newLeftChild is not None: newLeftChild.setHeight()
             startNode.setHeight()
             if newSubRoot is not None: newSubRoot.setHeight()
-            # print(str(startNode), "left-right")
-            try:
-                assert(newSubRoot.isBalanced() == True)
-            except Exception as e:
-                print("error", newSubRoot.leftChild.height, newSubRoot.rightChild.height)
+            # print(str(startNode.parent), str(newSubRoot), "left-right")
+            assert(newSubRoot.isBalanced() == True)
         elif imbalanceType == AVLTree.RIGHT_LEFT_HEAVY:
             newRightChild = startNode.rightChild
             newSubRoot = startNode.rightChild.leftChild
@@ -128,10 +133,7 @@ class AVLTree(BST):
             startNode.setHeight()
             if newSubRoot is not None: newSubRoot.setHeight()
             # print(str(startNode), "right-left")
-            try:
-                assert(newSubRoot.isBalanced() == True)
-            except Exception as e:
-                print("error", newSubRoot.leftChild.height, newSubRoot.rightChild.height)
+            assert(newSubRoot.isBalanced() == True)
         elif imbalanceType == AVLTree.RIGHT_RIGHT_HEAVY:
             newSubRoot = startNode.rightChild
             newRightChild = startNode.rightChild.rightChild
@@ -141,10 +143,7 @@ class AVLTree(BST):
             if newRightChild is not None: newRightChild.setHeight()
             if newSubRoot is not None: newSubRoot.setHeight()
             # print(str(startNode), "right-right")
-            try:
-                assert(newSubRoot.isBalanced() == True)
-            except Exception as e:
-                print("error", newSubRoot.leftChild.height, newSubRoot.rightChild.height)
+            assert(newSubRoot.isBalanced() == True)
         elif imbalanceType == AVLTree.BALANCED:
             pass
         else:
@@ -165,31 +164,47 @@ class AVLTree(BST):
                 if childNode.isRightHeavy(): return AVLTree.RIGHT_RIGHT_HEAVY
             return AVLTree.BALANCED
 
+def testPerformanceWorstCase():
+    RANGE = 1E5
+    print("Testing performance for worse case: insert %s nodes in ascending order" % int(2*RANGE))
+    t = AVLTree()
+    for i in xrange(int(-RANGE), int(RANGE)+1):
+        t.insert(i)
+    
+def testPerformanceAverageCase():
+    import math, random
+    RANGE = 1E5
+    print("Testing performance for average case: insert %s nodes generated randomly in the interval [-1000, 1000]" % int(2*RANGE))
+    t = AVLTree()
+    for i in xrange(int(-RANGE), int(RANGE)+1):
+        val = int(math.floor(random.uniform(-1000, 1000)))
+        t.insert(val)
+    
 def test():
     # Test balancing
     import math, random
     t = AVLTree()
     RANGE = 1E4
-    print("Testing correctness for worse case scenario: inserting %s nodes in ascending order" % int(2*RANGE))
+    print("Testing correctness for worse case: inserting %s nodes in ascending order" % int(2*RANGE))
     for i in xrange(int(-RANGE), int(RANGE)+1):
         t.insert(i)
         if i % 1000 == 0: print("Num of nodes processed: %d k" % ( (i+RANGE) / 1000))
         assert(t.getHeight() == math.ceil(math.log(i+RANGE+1+1, 2))-1)
 
-    print("Testing correctness for average case scenario: inserting %s nodes generated randomly in the interval [-1000, 1000]" % int(2*RANGE))
-    newT = AVLTree()
+    print("Testing correctness for average case: inserting %s nodes generated randomly in the interval [-1000, 1000]" % int(2*RANGE))
+    t = AVLTree()
     for i in xrange(int(-RANGE), int(RANGE)+1):
         val = int(math.floor(random.uniform(-1000, 1000)))
-        newT.insert(val)
-        print(i+RANGE+1, val, newT.getHeight(), 1.44 * math.log(i+RANGE+1, 2))
+        t.insert(val)
+        # print(i+RANGE+1, val, newT.getHeight(), 1.44 * math.log(i+RANGE+1, 2))
         if i % 1000 == 0: print("Num of nodes processed: %d k" % ( (i+RANGE) / 1000))
         # See https://www.youtube.com/watch?v=FNeL18KsWPc&t=2484s (25:16) for fomula h < 1.440 lg n
-        assert(newT.getHeight() <= 1.44 * math.log(i+RANGE+1, 2))
-
+        assert(t.getHeight() <= 1.44 * math.log(i+RANGE+1, 2))
 
     # Test performance
     import timeit
-    print("Testing performance of ")
+    print(timeit.timeit("testPerformanceWorstCase()", setup="from __main__ import testPerformanceWorstCase", number=1))
+    print(timeit.timeit("testPerformanceAverageCase()", setup="from __main__ import testPerformanceAverageCase", number=1))
 
 if __name__ == "__main__":
     test()
