@@ -114,8 +114,8 @@ class BST(object):
                     self.root = target.leftChild
                 elif target.leftChild is not None and target.rightChild is not None:
                     rightMin = self.min(target.rightChild)
-                    target.val = rightMin
                     self.remove(rightMin, target.rightChild)
+                    target.val = rightMin
                 else:
                     return False
                 return True
@@ -136,8 +136,8 @@ class BST(object):
                     target.leftChild.parent = target.parent
                 elif target.rightChild is not None and target.rightChild is not None:
                     rightMin = self.min(target.rightChild)
-                    target.val = rightMin
                     self.remove(rightMin, target.rightChild)
+                    target.val = rightMin
                 else:
                     # Funny edge case
                     return False
