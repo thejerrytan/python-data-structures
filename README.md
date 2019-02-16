@@ -20,7 +20,7 @@ Needs to be tested for use in programming contest environment.
 It is not published as a package now, so just copy and paste it, import it and use it as per normal.
 Head on over to my repl repos to run these code in an interactive coding environment online!
 
-https://AdvancedDataStructures.thejerrytan.repl.run
+https://repl.it/@thejerrytan/AdvancedDataStructures
 
 ## Contributing
 
